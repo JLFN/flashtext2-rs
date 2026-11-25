@@ -17,3 +17,9 @@ Cargo.lock
 .idea/
 
 notes.txt
+
+# Indexes and graphs (regenerable build output, rule 12.4)
+.rag-index/
+graphify-rs-out/
+graphify-out/
+.callgraph-index.bin
