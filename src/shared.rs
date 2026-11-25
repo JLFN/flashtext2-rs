@@ -71,15 +71,28 @@ impl<'a> KeywordProcessor<'a> {
         }
     }
 
-    // TODO: should reference to self be like this??
-    pub fn extract_keywords(&'a self, text: &'a str) -> impl Iterator<Item = &'a str> + 'a {
-        KeywordExtractor::new(text, &self.trie).map(|(keyword, _, _)| keyword)
+    /// Extracts the stored keywords found in `text`.
+    ///
+    /// The returned keywords are borrowed from the trie, not from `text`, so
+    /// `text` only has to live as long as the call. Tying both to `'a` (the
+    /// keyword lifetime) would force every caller to keep its input alive for
+    /// as long as the processor, which is what made a `'static` processor
+    /// unusable with a local string.
+    pub fn extract_keywords<'b>(&'b self, text: &'b str) -> impl Iterator<Item = &'b str> + 'b
+    where
+        'a: 'b,
+    {
+        KeywordExtractor::new(text, &self.trie)
+            .map(|(keyword, _, _): (&'b str, usize, usize)| keyword)
     }
 
-    pub fn extract_keywords_with_span(
-        &'a self,
-        text: &'a str,
-    ) -> impl Iterator<Item = (&'a str, usize, usize)> + 'a {
+    pub fn extract_keywords_with_span<'b>(
+        &'b self,
+        text: &'b str,
+    ) -> impl Iterator<Item = (&'b str, usize, usize)> + 'b
+    where
+        'a: 'b,
+    {
         KeywordExtractor::new(text, &self.trie)
     }
 
@@ -103,14 +116,17 @@ impl<'a> KeywordProcessor<'a> {
     }
 }
 
-struct KeywordExtractor<'a> {
+// Two lifetimes on purpose: `'t` is the input text, `'k` is the stored
+// keywords. The iterator yields keywords and their spans into the text, so the
+// item type mixes both, but neither has to outlive the other.
+struct KeywordExtractor<'t, 'k> {
     idx: usize,
-    tokens: Vec<(usize, &'a str)>,
-    trie: &'a Node<'a>,
+    tokens: Vec<(usize, &'t str)>,
+    trie: &'k Node<'k>,
 }
 
-impl<'a> KeywordExtractor<'a> {
-    fn new(text: &'a str, trie: &'a Node) -> Self {
+impl<'t, 'k> KeywordExtractor<'t, 'k> {
+    fn new(text: &'t str, trie: &'k Node<'k>) -> Self {
         Self {
             idx: 0,
             // TODO: instead of saving all of them in memory inside a Vector, we should save
@@ -121,9 +137,9 @@ impl<'a> KeywordExtractor<'a> {
     }
 }
 
-impl<'a> Iterator for KeywordExtractor<'a> {
+impl<'t, 'k> Iterator for KeywordExtractor<'t, 'k> {
     // TODO: return a struct or smth instead of a tuple
-    type Item = (&'a str, usize, usize);
+    type Item = (&'k str, usize, usize);
 
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {

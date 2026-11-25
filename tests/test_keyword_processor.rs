@@ -158,3 +158,44 @@ fn test_longest_match_wins() {
     let found: Vec<&str> = kp.extract_keywords("I live in New York City now").collect();
     assert_eq!(found, ["New York City"]);
 }
+
+/// The input text must not have to outlive the keywords.
+///
+/// Before the lifetime split, a processor built from `'static` keywords could
+/// only be queried with `'static` text, which ruled out the common shape of a
+/// processor held in a `static`/`OnceLock` and a title built at run time. This
+/// test fails to compile if that regression comes back.
+#[test]
+fn test_static_keywords_accept_local_text() {
+    use std::sync::OnceLock;
+
+    static KP: OnceLock<case_insensitive::KeywordProcessor<'static>> = OnceLock::new();
+
+    static WORDS: [&str; 2] = ["scam", "counterfeit"];
+    let mut kp = case_insensitive::KeywordProcessor::new();
+    kp.add_keywords_from_iter(WORDS);
+    KP.set(kp).ok();
+
+    let local_title = String::from("Cheap SCAM watch, clearly counterfeit");
+    let found: Vec<&str> = KP
+        .get()
+        .expect("processor set")
+        .extract_keywords(&local_title)
+        .collect();
+
+    assert_eq!(found, ["scam", "counterfeit"]);
+}
+
+/// Spans are byte offsets into the local text, so a short-lived input is
+/// enough to slice it.
+#[test]
+fn test_static_keywords_span_a_local_text() {
+    static WORDS: [&str; 1] = ["hello"];
+    let mut kp = case_sensitive::KeywordProcessor::new();
+    kp.add_keywords_from_iter(WORDS);
+
+    let local_text = String::from("say hello now");
+    let hits: Vec<(&str, usize, usize)> = kp.extract_keywords_with_span(&local_text).collect();
+    assert_eq!(hits, [("hello", 4, 9)]);
+    assert_eq!(&local_text[hits[0].1..hits[0].2], "hello");
+}
