@@ -92,3 +92,13 @@ assert_eq!(found_tokens, tokens);
 
 [`case_insensitive_hashmap`]: https://docs.rs/case_insensitive_hashmap/latest/case_insensitive_hashmap
 
+## Credits
+
+The FlashText algorithm is by Vikash Singh. This crate began as a fork of
+[`shner-elmo/flashtext2-rs`](https://github.com/shner-elmo/flashtext2-rs) by
+Shneor Elmaleh, and remains licensed GPL-3.0-only to match it. This fork is
+maintained at [`JLFN/flashtext2-rs`](https://github.com/JLFN/flashtext2-rs),
+which replaced the unmaintained `fxhash` with `rustc-hash`, split the
+extraction lifetimes so a stored processor can be queried with short-lived
+text, and added the edge-case test suite under `tests/`.
+
