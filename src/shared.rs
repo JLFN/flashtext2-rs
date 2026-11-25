@@ -53,7 +53,7 @@ impl<'a> KeywordProcessor<'a> {
             self.len += 1;
         }
         // but even if there is already a keyword, the user can still overwrite its `clean_word`
-        trie.clean_word = Some(clean_word.as_ref());
+        trie.clean_word = Some(clean_word);
     }
 
     pub fn add_keywords_from_iter(&mut self, iter: impl IntoIterator<Item = &'a str>) {
@@ -91,7 +91,7 @@ impl<'a> KeywordProcessor<'a> {
         let mut prev_end = 0;
         for (keyword, start, end) in self.extract_keywords_with_span(text) {
             string += &text[prev_end..start];
-            string += &keyword;
+            string += keyword;
             prev_end = end;
         }
         string += &text[prev_end..];
